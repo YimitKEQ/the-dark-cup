@@ -16,6 +16,7 @@ import './styles/overlay.css'
 import './styles/ledger.css'
 import './styles/journal.css'
 import './styles/cases.css'
+import './styles/web.css'
 import './styles/parchment.css'
 
 import { DataProvider } from './state.jsx'

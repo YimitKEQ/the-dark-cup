@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { api } from './api.js'
+import { isStaticHost, loadVaultConfig, saveVaultConfig, clearVaultConfig, createVaultStore, fetchVault, putVault } from './vault.js'
 
 const DataContext = createContext(null)
 
@@ -7,13 +8,49 @@ export function useData () {
   return useContext(DataContext)
 }
 
+// Two ways to keep the book: 'server' (local Express writing data/darkcup.json)
+// and 'vault' (a private GitHub repository via the Contents API, used when the
+// app is served from GitHub Pages). Same records, same shape, different shelf.
+const serverStore = {
+  data: api.data,
+  create: api.create,
+  update: api.update,
+  remove: api.remove,
+  importAll: api.importAll
+}
+
 export function DataProvider ({ children }) {
   const [db, setDb] = useState(null)
+  const [mode, setMode] = useState(null)
   const [error, setError] = useState(null)
+  const storeRef = useRef(serverStore)
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setError(null)
-    api.data().then(setDb).catch(e => setError(e.message))
+    if (!isStaticHost()) {
+      storeRef.current = serverStore
+      try {
+        setDb(await serverStore.data())
+        setMode('server')
+      } catch (e) {
+        setError(e.message)
+      }
+      return
+    }
+    const cfg = loadVaultConfig()
+    if (!cfg) {
+      setMode('vault-setup')
+      return
+    }
+    try {
+      const store = createVaultStore(cfg)
+      storeRef.current = store
+      setDb(await store.data())
+      setMode('vault')
+    } catch (e) {
+      setError(e.message)
+      setMode('vault-setup')
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -27,17 +64,17 @@ export function DataProvider ({ children }) {
 
   const crud = (col) => ({
     async add (fields) {
-      const item = await api.create(col, fields)
+      const item = await storeRef.current.create(col, fields)
       setDb(prev => ({ ...prev, [col]: [item, ...prev[col]] }))
       return item
     },
     async update (record) {
-      const item = await api.update(col, record.id, record)
+      const item = await storeRef.current.update(col, record.id, record)
       replaceIn(col, item)
       return item
     },
     async remove (recordId) {
-      await api.remove(col, recordId)
+      await storeRef.current.remove(col, recordId)
       setDb(prev => ({ ...prev, [col]: prev[col].filter(x => x.id !== recordId) }))
     }
   })
@@ -50,6 +87,26 @@ export function DataProvider ({ children }) {
 
   const actions = {
     reload: load,
+    async bindVault (cfg) {
+      const existing = await fetchVault(cfg)
+      if (!existing) {
+        await putVault(cfg, {
+          version: 1, people: [], journal: [], cases: [], poison: [], quicknotes: [], updatedAt: new Date().toISOString()
+        }, null, 'begin the book')
+      }
+      saveVaultConfig(cfg)
+      const store = createVaultStore(cfg)
+      storeRef.current = store
+      setDb(await store.data())
+      setError(null)
+      setMode('vault')
+    },
+    unbindVault () {
+      clearVaultConfig()
+      storeRef.current = serverStore
+      setDb(null)
+      setMode('vault-setup')
+    },
 
     addPerson: people.add,
     updatePerson: people.update,
@@ -69,6 +126,13 @@ export function DataProvider ({ children }) {
     async deleteNote (person, noteId) {
       return people.update({ ...person, notes: person.notes.filter(n => n.id !== noteId) })
     },
+    async addTie (person, tie) {
+      const next = { ...person, ties: [...(person.ties || []), tie] }
+      return people.update(next)
+    },
+    async deleteTie (person, tieId) {
+      return people.update({ ...person, ties: (person.ties || []).filter(t => t.id !== tieId) })
+    },
 
     addJournal: journal.add,
     updateJournal: journal.update,
@@ -86,14 +150,14 @@ export function DataProvider ({ children }) {
     deleteQuick: quicknotes.remove,
 
     async importAll (doc) {
-      const next = await api.importAll(doc)
+      const next = await storeRef.current.importAll(doc)
       setDb(next)
       return next
     }
   }
 
   return (
-    <DataContext.Provider value={{ db, error, ...actions }}>
+    <DataContext.Provider value={{ db, error, mode, ...actions }}>
       {children}
     </DataContext.Provider>
   )

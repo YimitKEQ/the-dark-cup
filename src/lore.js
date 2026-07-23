@@ -46,6 +46,20 @@ export function caseStepLabel (key) {
   return (CASE_STEPS.find(s => s.key === key) || CASE_STEPS[0]).label
 }
 
+export const TIE_KINDS = [
+  { key: 'kin', label: 'Kin' },
+  { key: 'ally', label: 'Ally' },
+  { key: 'rival', label: 'Rival' },
+  { key: 'enemy', label: 'Enemy' },
+  { key: 'debt', label: 'Debt' },
+  { key: 'informant', label: 'Informant' },
+  { key: 'patron', label: 'Patron' }
+]
+
+export function tieLabel (key) {
+  return (TIE_KINDS.find(t => t.key === key) || TIE_KINDS[1]).label
+}
+
 const ROMAN = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
 export function roman (n) {
   let out = ''

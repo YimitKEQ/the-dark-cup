@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
 import { useData } from '../state.jsx'
+import { loadVaultConfig } from '../vault.js'
+import { toast } from '../toast.js'
 import ConfirmButton from './ConfirmButton.jsx'
 
 export default function Archive () {
-  const { db, importAll } = useData()
+  const { db, mode, importAll, unbindVault } = useData()
   const fileRef = useRef(null)
   const [pending, setPending] = useState(null)
   const [message, setMessage] = useState(null)
@@ -31,17 +33,35 @@ export default function Archive () {
     try {
       await importAll(pending.doc)
       setPending(null)
-      setMessage({ kind: 'ok', text: 'The records have been restored. The old book was copied to data/backups first.' })
+      setMessage({ kind: 'ok', text: 'The records have been restored.' })
+      toast('Restored.')
     } catch (err) {
       setMessage({ kind: 'error', text: err.message })
     }
   }
 
+  function exportLocal () {
+    const stamp = new Date().toISOString().slice(0, 10)
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `darkcup-export-${stamp}.json`
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 30000)
+  }
+
   const counts = [
     `${db.people.length} people`,
     `${db.people.reduce((n, p) => n + p.notes.length, 0)} ledger notes`,
-    `${db.journal.length} journal entries`
+    `${db.journal.length} journal entries`,
+    `${db.cases.length} cases`,
+    `${db.poison.length} doses`,
+    `${db.quicknotes.length} quick notes`
   ].join(' · ')
+
+  const vaultCfg = mode === 'vault' ? loadVaultConfig() : null
 
   return (
     <section>
@@ -53,22 +73,34 @@ export default function Archive () {
       <div className="archive-block">
         <h2>What the book holds</h2>
         <p>{counts}</p>
-        <p className="detail">
-          Everything lives on this machine, in <code>data/darkcup.json</code>. Each time the app starts,
-          a dated copy is set aside in <code>data/backups</code>; the last twenty are kept.
-        </p>
+        {mode === 'server' && (
+          <p className="detail">
+            Everything lives on this machine, in <code>data/darkcup.json</code>. Each time the app starts,
+            a dated copy is set aside in <code>data/backups</code>; the last twenty are kept.
+          </p>
+        )}
+        {mode === 'vault' && vaultCfg && (
+          <p className="detail">
+            Everything lives in the vault: <code>{vaultCfg.owner}/{vaultCfg.repo}</code>, a private
+            repository. Every change is a sealed commit, so the vault remembers every version of the
+            book there has ever been. The key stays in this browser.
+          </p>
+        )}
       </div>
 
       <div className="archive-block">
         <h2>Carry a copy out</h2>
         <p className="detail">A single file holding every record, fit for keeping somewhere safe.</p>
-        <a className="btn primary" href="/api/export" download>Export everything</a>
+        {mode === 'server'
+          ? <a className="btn primary" href="/api/export" download>Export everything</a>
+          : <button className="btn primary" onClick={exportLocal}>Export everything</button>}
       </div>
 
       <div className="archive-block">
         <h2>Restore from a copy</h2>
         <p className="detail">
-          This replaces the entire book with the file you choose. The current book is backed up first.
+          This replaces the entire book with the file you choose.
+          {mode === 'server' ? ' The current book is backed up first.' : ' The vault keeps the old version in its history.'}
         </p>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={onFile} style={{ display: 'none' }} />
         {!pending && <button className="btn" onClick={() => fileRef.current?.click()}>Choose a file</button>}
@@ -90,6 +122,21 @@ export default function Archive () {
         )}
         {message && <p className={`archive-msg ${message.kind}`}>{message.text}</p>}
       </div>
+
+      {mode === 'vault' && (
+        <div className="archive-block">
+          <h2>Unbind this device</h2>
+          <p className="detail">
+            Forgets the key on this browser only. The vault and everything in it remain untouched.
+          </p>
+          <ConfirmButton
+            className="btn danger"
+            label="Unbind"
+            confirmLabel="Unbind, truly?"
+            onConfirm={() => { unbindVault(); toast('Unbound.') }}
+          />
+        </div>
+      )}
     </section>
   )
 }

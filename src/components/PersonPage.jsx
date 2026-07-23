@@ -1,10 +1,85 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '../state.jsx'
-import { TAGS, formatRealDate, timeAgo } from '../lore.js'
+import { TAGS, TIE_KINDS, tieLabel, formatRealDate, timeAgo } from '../lore.js'
 import { go } from '../App.jsx'
 import { toast } from '../toast.js'
 import ConfirmButton from './ConfirmButton.jsx'
 import ParchmentModal from './ParchmentModal.jsx'
+
+function TiesBlock ({ person }) {
+  const { db, addTie, deleteTie } = useData()
+  const [adding, setAdding] = useState(false)
+  const [query, setQuery] = useState('')
+  const [kind, setKind] = useState('ally')
+  const [note, setNote] = useState('')
+
+  const ties = person.ties || []
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    return db.people
+      .filter(p => p.id !== person.id && p.name.toLowerCase().includes(q))
+      .slice(0, 5)
+  }, [db.people, query, person.id])
+
+  async function tie (target) {
+    await addTie(person, { personId: target.id, kind, note: note.trim() })
+    setQuery(''); setNote(''); setAdding(false)
+    toast(`Tied to ${target.name}.`)
+  }
+
+  return (
+    <div className="ties-block">
+      <div className="ties-row">
+        {ties.map(t => {
+          const other = db.people.find(p => p.id === t.personId)
+          if (!other) return null
+          return (
+            <span key={t.id} className={`tie-chip tie-${t.kind}`} title={t.note || tieLabel(t.kind)}>
+              <em>{tieLabel(t.kind)}</em>
+              <a href={`#/person/${other.id}`}>{other.name}</a>
+              <button className="tie-x" title="Sever" onClick={() => deleteTie(person, t.id)}>×</button>
+            </span>
+          )
+        })}
+        {!adding && (
+          <button className="link-btn" onClick={() => setAdding(true)}>
+            {ties.length === 0 ? 'tie them to someone' : 'add a tie'}
+          </button>
+        )}
+      </div>
+      {adding && (
+        <div className="tie-form">
+          <select value={kind} onChange={e => setKind(e.target.value)}>
+            {TIE_KINDS.map(k => <option key={k.key} value={k.key}>{k.label}</option>)}
+          </select>
+          <input
+            autoFocus
+            placeholder="To whom? Search the ledger…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') setAdding(false) }}
+          />
+          <input
+            className="tie-note"
+            placeholder="A word on it (optional)"
+            value={note}
+            onChange={e => setNote(e.target.value)}
+          />
+          {matches.length > 0 && (
+            <ul className="person-suggest tie-suggest">
+              {matches.map(p => (
+                <li key={p.id}>
+                  <button onClick={() => tie(p)}>{p.name}<span>{p.role}</span></button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function buildDossier (person) {
   const station = [person.role, person.allegiance].filter(Boolean).join(', ')
@@ -235,6 +310,8 @@ export default function PersonPage ({ personId }) {
             </div>
           </header>
           )}
+
+      <TiesBlock person={person} />
 
       <NoteComposer person={person} focusRef={composerRef} />
 

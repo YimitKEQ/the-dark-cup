@@ -10,7 +10,10 @@ import CasePage from './components/CasePage.jsx'
 import Poison from './components/Poison.jsx'
 import QuickNotes from './components/QuickNotes.jsx'
 import QuickJot from './components/QuickJot.jsx'
+import Web from './components/Web.jsx'
+import Chronicle from './components/Chronicle.jsx'
 import Archive from './components/Archive.jsx'
+import VaultSetup from './components/VaultSetup.jsx'
 import SearchPalette from './components/SearchPalette.jsx'
 import Toasts from './components/Toasts.jsx'
 
@@ -31,6 +34,8 @@ function parseHash () {
   }
   if (parts[0] === 'poison') return { page: 'poison' }
   if (parts[0] === 'quick') return { page: 'quick' }
+  if (parts[0] === 'web') return { page: 'web' }
+  if (parts[0] === 'chronicle') return { page: 'chronicle' }
   if (parts[0] === 'archive') return { page: 'archive' }
   return { page: 'ledger' }
 }
@@ -41,7 +46,9 @@ export function go (path) {
 
 const NAV = [
   { hash: '#/', label: 'The Ledger', match: ['ledger', 'person'], count: db => db.people.length },
+  { hash: '#/web', label: 'The Web', match: ['web'], count: () => 0 },
   { hash: '#/journal', label: 'The Journal', match: ['journal', 'journal-new', 'journal-edit', 'read'], count: db => db.journal.length },
+  { hash: '#/chronicle', label: 'The Chronicle', match: ['chronicle'], count: () => 0 },
   { hash: '#/cases', label: 'The Cases', match: ['cases', 'case'], count: db => db.cases.filter(c => c.status === 'open').length },
   { hash: '#/poison', label: 'The Poison Log', match: ['poison'], count: db => db.poison.length },
   { hash: '#/quick', label: 'Quick Notes', match: ['quick'], count: db => db.quicknotes.length },
@@ -49,7 +56,7 @@ const NAV = [
 ]
 
 export default function App () {
-  const { db, error, reload } = useData()
+  const { db, error, mode, reload } = useData()
   const [route, setRoute] = useState(parseHash)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [jotOpen, setJotOpen] = useState(false)
@@ -81,6 +88,21 @@ export default function App () {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onKeyDown])
 
+  if (mode === 'vault-setup') {
+    return (
+      <div className="app app-setup">
+        <nav className="spine">
+          <a className="masthead" href="#/">
+            <span className="masthead-title">The Dark Cup</span>
+            <span className="masthead-sub">the private record of</span>
+            <span className="masthead-name">Yiliang Peng Black-Throat</span>
+            <span className="masthead-office">Housecarl of Windhelm</span>
+          </a>
+        </nav>
+        <main className="page"><VaultSetup /></main>
+      </div>
+    )
+  }
   if (error) {
     return (
       <div className="app-message">
@@ -141,6 +163,8 @@ export default function App () {
         {route.page === 'case' && <CasePage caseId={route.id} />}
         {route.page === 'poison' && <Poison />}
         {route.page === 'quick' && <QuickNotes />}
+        {route.page === 'web' && <Web />}
+        {route.page === 'chronicle' && <Chronicle />}
         {route.page === 'archive' && <Archive />}
       </main>
 

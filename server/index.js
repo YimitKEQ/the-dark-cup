@@ -10,6 +10,7 @@ const DIST = path.join(ROOT, 'dist')
 const PORT = process.env.PORT || 4201
 const TAG_KEYS = ['debt', 'secret', 'threat', 'favour', 'ally']
 const CASE_STEP_KEYS = ['contact', 'warning', 'pressure', 'mercy', 'escalation', 'resolution', 'other']
+const TIE_KEYS = ['kin', 'ally', 'rival', 'enemy', 'debt', 'informant', 'patron']
 
 const str = (v, max = 4000) => (typeof v === 'string' ? v.slice(0, max).trim() : '')
 const longStr = (v) => (typeof v === 'string' ? v.slice(0, 200000) : '')
@@ -33,12 +34,24 @@ const validators = {
   people (b) {
     const name = str(b.name, 200)
     if (!name) return null
+    const sanitizeTie = (t) => {
+      if (!t || typeof t !== 'object') return null
+      const personId = str(t.personId, 64)
+      if (!personId) return null
+      return {
+        id: str(t.id, 64) || id(),
+        personId,
+        kind: TIE_KEYS.includes(t.kind) ? t.kind : 'ally',
+        note: str(t.note, 500)
+      }
+    }
     return {
       name,
       role: str(b.role, 300),
       allegiance: str(b.allegiance, 300),
       metAt: str(b.metAt, 300),
-      notes: Array.isArray(b.notes) ? b.notes.map(sanitizeNote).filter(Boolean) : []
+      notes: Array.isArray(b.notes) ? b.notes.map(sanitizeNote).filter(Boolean) : [],
+      ties: Array.isArray(b.ties) ? b.ties.map(sanitizeTie).filter(Boolean) : []
     }
   },
   journal (b) {
