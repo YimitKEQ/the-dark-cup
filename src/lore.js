@@ -26,6 +26,40 @@ export const SIGNATURE = {
   epithet: 'The Dark Cup'
 }
 
+export const CASE_STEPS = [
+  { key: 'contact', label: 'First contact' },
+  { key: 'warning', label: 'First warning' },
+  { key: 'pressure', label: 'Pressure applied' },
+  { key: 'mercy', label: 'Offered a way out' },
+  { key: 'escalation', label: 'They escalated' },
+  { key: 'resolution', label: 'Resolved' },
+  { key: 'other', label: 'Other' }
+]
+
+export const CASE_STATUS = [
+  { key: 'open', label: 'Open' },
+  { key: 'resolved', label: 'Resolved' },
+  { key: 'abandoned', label: 'Abandoned' }
+]
+
+export function caseStepLabel (key) {
+  return (CASE_STEPS.find(s => s.key === key) || CASE_STEPS[0]).label
+}
+
+const ROMAN = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+export function roman (n) {
+  let out = ''
+  for (const [v, s] of ROMAN) {
+    while (n >= v) { out += s; n -= v }
+  }
+  return out || 'I'
+}
+
+export function countWords (text) {
+  const m = (text || '').trim().match(/\S+/g)
+  return m ? m.length : 0
+}
+
 function ordinal (n) {
   const s = ['th', 'st', 'nd', 'rd']
   const v = n % 100

@@ -9,6 +9,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
 const PORT = process.env.PORT || 4201
 const TAG_KEYS = ['debt', 'secret', 'threat', 'favour', 'ally']
+const CASE_STEP_KEYS = ['contact', 'warning', 'pressure', 'mercy', 'escalation', 'resolution', 'other']
 
 const str = (v, max = 4000) => (typeof v === 'string' ? v.slice(0, max).trim() : '')
 const longStr = (v) => (typeof v === 'string' ? v.slice(0, 200000) : '')
@@ -61,12 +62,40 @@ const validators = {
     return { text }
   },
   cases (b) {
-    if (!b || typeof b !== 'object') return null
-    return { ...b }
+    const personId = str(b.personId, 64)
+    const title = str(b.title, 300)
+    if (!personId && !title) return null
+    const sanitizeStep = (s) => {
+      if (!s || typeof s !== 'object') return null
+      const text = longStr(s.text).trim()
+      if (!text) return null
+      return {
+        id: str(s.id, 64) || id(),
+        type: CASE_STEP_KEYS.includes(s.type) ? s.type : 'contact',
+        text,
+        witnesses: str(s.witnesses, 500),
+        worldDate: str(s.worldDate, 120),
+        createdAt: str(s.createdAt, 40) || now()
+      }
+    }
+    return {
+      personId,
+      title,
+      status: ['open', 'resolved', 'abandoned'].includes(b.status) ? b.status : 'open',
+      steps: Array.isArray(b.steps) ? b.steps.map(sanitizeStep).filter(Boolean) : []
+    }
   },
   poison (b) {
-    if (!b || typeof b !== 'object') return null
-    return { ...b }
+    const dose = Number(b.dose)
+    const effect = str(b.effect, 2000)
+    if (!Number.isFinite(dose) && !effect) return null
+    return {
+      dateText: str(b.dateText, 120),
+      dose: Number.isFinite(dose) ? dose : null,
+      unit: str(b.unit, 40),
+      effect,
+      note: longStr(b.note)
+    }
   }
 }
 

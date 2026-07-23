@@ -1,6 +1,6 @@
 /* ---------- ledger list ---------- */
 
-.add-btn { margin-bottom: 18px; }
+.add-btn { flex: 0 0 auto; }
 
 .new-person {
   display: flex;
@@ -9,71 +9,97 @@
   border: 1px solid var(--hairline);
   padding: 20px;
   margin-bottom: 22px;
-  background: linear-gradient(180deg, rgba(201, 162, 75, 0.04), transparent);
+  background: linear-gradient(180deg, rgba(208, 168, 84, 0.04), transparent);
 }
 
 .person-list { list-style: none; }
 
 .person-row {
   display: block;
-  padding: 15px 14px;
+  padding: 16px 14px;
   border-bottom: 1px solid var(--hairline);
   transition: background 120ms;
 }
 
 .person-list li:first-child .person-row { border-top: 1px solid var(--hairline); }
 
-.person-row:hover { background: rgba(233, 218, 178, 0.035); }
+.person-row:hover { background: rgba(240, 226, 191, 0.035); }
 
 .person-main { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 
 .person-name {
   font-family: var(--font-fell);
-  font-size: 21px;
+  font-size: 22px;
   color: var(--ink-bright);
 }
 
 .person-row:hover .person-name { color: var(--gold); }
 
-.person-role { font-size: 15px; color: var(--ink-dim); font-style: italic; }
+.person-role {
+  font-size: 16px;
+  color: var(--ink-dim);
+  font-style: italic;
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tag-marks { display: inline-flex; gap: 10px; margin-left: auto; }
+
+.tag-mark { font-size: 10px; letter-spacing: 0; white-space: nowrap; }
+.tag-mark i {
+  font-style: normal;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  margin-left: 3px;
+  vertical-align: 1px;
+}
+
+.mark-debt { color: #d0ab5c; }
+.mark-secret { color: #ab96cb; }
+.mark-threat { color: #cb755e; }
+.mark-favour { color: #9fb573; }
+.mark-ally { color: #88a8b8; }
 
 .person-side {
   display: flex;
   gap: 14px;
-  margin-top: 3px;
-  font-size: 13.5px;
-  color: var(--ink-faint);
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-dim);
   font-variant: small-caps;
   letter-spacing: 0.05em;
+  flex-wrap: wrap;
 }
 
 .person-match {
   margin-top: 7px;
   font-family: var(--font-fell);
   font-style: italic;
-  font-size: 15px;
+  font-size: 15.5px;
   color: var(--ink-dim);
   border-left: 2px solid var(--hairline-strong);
   padding-left: 10px;
+  max-width: 70ch;
 }
 
 /* ---------- person page ---------- */
 
 .person-head h1 { font-family: var(--font-fell); font-size: 40px; }
 
-.head-actions { display: flex; gap: 12px; margin-top: 10px; }
+.head-actions { display: flex; gap: 12px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
 
 .composer {
   border: 1px solid var(--hairline);
-  background: linear-gradient(180deg, rgba(201, 162, 75, 0.04), transparent);
+  background: linear-gradient(180deg, rgba(208, 168, 84, 0.04), transparent);
   padding: 16px;
   margin-top: 24px;
 }
 
 .composer textarea, .note.editing textarea {
-  background: rgba(13, 10, 6, 0.6);
+  background: rgba(15, 11, 6, 0.6);
   font-family: var(--font-fell);
-  font-size: 17px;
+  font-size: 17.5px;
 }
 
 .composer-foot {
@@ -92,13 +118,22 @@
 .note {
   padding: 16px 14px;
   border-bottom: 1px solid var(--hairline);
+  border-left: 2px solid transparent;
 }
+
+.note-debt { border-left-color: rgba(208, 171, 92, 0.55); }
+.note-secret { border-left-color: rgba(171, 150, 203, 0.5); }
+.note-threat { border-left-color: rgba(203, 117, 94, 0.5); }
+.note-favour { border-left-color: rgba(159, 181, 115, 0.5); }
+.note-ally { border-left-color: rgba(136, 168, 184, 0.5); }
 
 .note-text {
   font-family: var(--font-fell);
-  font-size: 17.5px;
+  font-size: 18px;
+  line-height: 1.68;
   color: var(--ink);
   white-space: pre-wrap;
+  max-width: 70ch;
 }
 
 .note-meta {
@@ -112,7 +147,7 @@
 .note-tags { display: flex; gap: 6px; }
 
 .note-time {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink-faint);
   font-variant: small-caps;
   letter-spacing: 0.06em;
@@ -122,20 +157,31 @@
 
 .note:hover .note-actions, .note:focus-within .note-actions { opacity: 1; }
 
-.note.editing { background: rgba(201, 162, 75, 0.03); }
+.note.editing { background: rgba(208, 168, 84, 0.03); }
 
-/* ---------- journal mentions on person page ---------- */
+/* ---------- send a quick note to the ledger ---------- */
+
+.send-to-ledger { margin-top: 12px; max-width: 420px; }
+
+/* ---------- journal mentions and cases on person page ---------- */
 
 .mentions { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--hairline); }
-.mentions ul { list-style: none; margin-top: 6px; }
-.mentions li { padding: 4px 0; font-family: var(--font-fell); font-size: 17px; }
+.mentions ul { list-style: none; margin: 6px 0 18px; }
+.mentions li {
+  padding: 4px 0;
+  font-family: var(--font-fell);
+  font-size: 17.5px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
 
 .mention-chip {
   display: inline-block;
   font-family: var(--font-ui);
   font-variant: small-caps;
   letter-spacing: 0.06em;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink-dim);
   border: 1px solid var(--hairline);
@@ -144,4 +190,4 @@
 }
 
 .mention-chip.removable { cursor: pointer; }
-.mention-chip.removable:hover { color: var(--blood); border-color: rgba(160, 74, 60, 0.4); }
+.mention-chip.removable:hover { color: var(--blood); border-color: rgba(168, 78, 62, 0.4); }

@@ -1,19 +1,15 @@
 import { useRef, useState } from 'react'
-import { toBlob } from 'html-to-image'
 import { useData } from '../state.jsx'
 import { STYLES, formatRealDate } from '../lore.js'
+import { parchmentBlob, downloadBlob, copyBlob, canCopyImage, slugify } from '../exportImage.js'
+import { toast } from '../toast.js'
 import { go } from '../App.jsx'
 import ParchmentPage from './ParchmentPage.jsx'
 import ConfirmButton from './ConfirmButton.jsx'
 
-function slug (s) {
-  return (s || 'entry').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'entry'
-}
-
 export default function ReadView ({ entryId }) {
   const { db, updateJournal, deleteJournal } = useData()
-  const [downloading, setDownloading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [busy, setBusy] = useState(false)
   const captureRef = useRef(null)
 
   const entry = db.journal.find(e => e.id === entryId)
@@ -23,35 +19,17 @@ export default function ReadView ({ entryId }) {
 
   const styleKey = entry.style || 'court'
 
-  async function setStyle (key) {
-    await updateJournal({ ...entry, style: key })
-  }
-
-  async function download () {
-    if (downloading) return
-    setDownloading(true)
-    setDone(false)
+  async function withBlob (fn, doneMessage) {
+    if (busy) return
+    setBusy(true)
     try {
-      await document.fonts.ready
-      const node = captureRef.current
-      const blob = await toBlob(node, {
-        pixelRatio: 2,
-        backgroundColor: 'rgba(0,0,0,0)',
-        width: 900,
-        height: node.offsetHeight
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `dark-cup-${slug(entry.title)}.png`
-      a.style.display = 'none'
-      document.body.appendChild(a)
-      a.click()
-      setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 30000)
-      setDone(true)
-      setTimeout(() => setDone(false), 4000)
+      const blob = await parchmentBlob(captureRef.current)
+      await fn(blob)
+      toast(doneMessage)
+    } catch (err) {
+      toast(`The press failed: ${err.message}`)
     } finally {
-      setDownloading(false)
+      setBusy(false)
     }
   }
 
@@ -64,7 +42,7 @@ export default function ReadView ({ entryId }) {
             <button
               key={s.key}
               className={'style-pick' + (styleKey === s.key ? ' on' : '')}
-              onClick={() => setStyle(s.key)}
+              onClick={() => updateJournal({ ...entry, style: s.key })}
               title={s.blurb}
             >
               {s.name}
@@ -72,15 +50,28 @@ export default function ReadView ({ entryId }) {
           ))}
         </div>
         <div className="read-actions">
-          <button className="btn primary" onClick={download} disabled={downloading}>
-            {downloading ? 'Pressing the seal…' : done ? 'Delivered' : 'Export parchment'}
+          {canCopyImage() && (
+            <button
+              className="btn primary"
+              disabled={busy}
+              onClick={() => withBlob(copyBlob, 'Copied. Paste it into Discord.')}
+            >
+              {busy ? 'Pressing the seal…' : 'Copy for Discord'}
+            </button>
+          )}
+          <button
+            className="btn"
+            disabled={busy}
+            onClick={() => withBlob(b => downloadBlob(b, `dark-cup-${slugify(entry.title)}.png`), 'Delivered.')}
+          >
+            Download PNG
           </button>
           <a className="btn" href={`#/journal/${entry.id}/edit`}>Amend</a>
           <ConfirmButton
             className="btn ghost danger"
             label="Burn it"
             confirmLabel="Burn it, truly?"
-            onConfirm={async () => { await deleteJournal(entry.id); go('/journal') }}
+            onConfirm={async () => { await deleteJournal(entry.id); toast('Burned.'); go('/journal') }}
           />
         </div>
       </div>

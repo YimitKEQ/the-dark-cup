@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../state.jsx'
 import { TAGS, timeAgo, snippet } from '../lore.js'
 import { go } from '../App.jsx'
+import { toast } from '../toast.js'
 
 function NewPersonForm ({ onDone }) {
   const { addPerson } = useData()
@@ -16,6 +17,7 @@ function NewPersonForm ({ onDone }) {
     setBusy(true)
     try {
       const person = await addPerson({ name, role, metAt, allegiance: '', notes: [] })
+      toast('Entered in the ledger.')
       go(`/person/${person.id}`)
     } finally {
       setBusy(false)
@@ -36,15 +38,52 @@ function NewPersonForm ({ onDone }) {
   )
 }
 
+function TagMarks ({ person }) {
+  const counts = {}
+  for (const n of person.notes) {
+    for (const t of n.tags) counts[t] = (counts[t] || 0) + 1
+  }
+  const present = TAGS.filter(t => counts[t.key])
+  if (present.length === 0) return null
+  return (
+    <span className="tag-marks">
+      {present.map(t => (
+        <span key={t.key} className={`tag-mark mark-${t.key}`} title={`${counts[t.key]} ${t.label.toLowerCase()}${counts[t.key] > 1 ? 's' : ''}`}>
+          ◆<i>{counts[t.key]}</i>
+        </span>
+      ))}
+    </span>
+  )
+}
+
+const SORTS = [
+  { key: 'touched', label: 'Last touched' },
+  { key: 'name', label: 'By name' },
+  { key: 'newest', label: 'Newest first' }
+]
+
 export default function Ledger () {
   const { db } = useData()
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState(null)
+  const [sort, setSort] = useState('touched')
   const [adding, setAdding] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e) => {
+      const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)
+      if (e.key.toLowerCase() === 'n' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        setAdding(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return db.people
+    const list = db.people
       .map(p => {
         const tagged = tag ? p.notes.filter(n => n.tags.includes(tag)) : p.notes
         if (tag && tagged.length === 0) return null
@@ -55,11 +94,17 @@ export default function Ledger () {
           if (!inMeta && !hit) return null
           if (hit) match = snippet(hit.text, q)
         }
-        const last = p.notes[0]
-        return { person: p, match, noteCount: tagged.length, last }
+        return { person: p, match, noteCount: tagged.length, last: p.notes[0] }
       })
       .filter(Boolean)
-  }, [db.people, query, tag])
+
+    const by = {
+      touched: (a, b) => new Date(b.last?.createdAt || b.person.createdAt) - new Date(a.last?.createdAt || a.person.createdAt),
+      name: (a, b) => a.person.name.localeCompare(b.person.name),
+      newest: (a, b) => new Date(b.person.createdAt) - new Date(a.person.createdAt)
+    }
+    return list.sort(by[sort] || by.touched)
+  }, [db.people, query, tag, sort])
 
   return (
     <section>
@@ -75,6 +120,12 @@ export default function Ledger () {
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
+        <select className="sort-select" value={sort} onChange={e => setSort(e.target.value)} title="Order of the ledger">
+          {SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+      </div>
+
+      <div className="toolbar slim">
         <div className="tag-row">
           {TAGS.map(t => (
             <button
@@ -86,11 +137,14 @@ export default function Ledger () {
             </button>
           ))}
         </div>
+        {!adding && (
+          <button className="btn add-btn" onClick={() => setAdding(true)}>
+            Enter a new name <kbd>N</kbd>
+          </button>
+        )}
       </div>
 
-      {adding
-        ? <NewPersonForm onDone={() => setAdding(false)} />
-        : <button className="btn add-btn" onClick={() => setAdding(true)}>Enter a new name</button>}
+      {adding && <NewPersonForm onDone={() => setAdding(false)} />}
 
       {rows.length === 0 && (
         <p className="empty">
@@ -107,6 +161,7 @@ export default function Ledger () {
               <div className="person-main">
                 <span className="person-name">{p.name}</span>
                 <span className="person-role">{[p.role, p.allegiance].filter(Boolean).join(' · ')}</span>
+                <TagMarks person={p} />
               </div>
               <div className="person-side">
                 {p.metAt && <span className="person-met">met at {p.metAt}</span>}

@@ -12,8 +12,10 @@ import '@fontsource/medievalsharp/400.css'
 import '@fontsource/unifrakturmaguntia/400.css'
 
 import './styles/base.css'
+import './styles/overlay.css'
 import './styles/ledger.css'
 import './styles/journal.css'
+import './styles/cases.css'
 import './styles/parchment.css'
 
 import { DataProvider } from './state.jsx'

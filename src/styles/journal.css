@@ -10,13 +10,13 @@
 }
 
 .entry-list li:first-child .entry-row { border-top: 1px solid var(--hairline); }
-.entry-row:hover { background: rgba(233, 218, 178, 0.035); }
+.entry-row:hover { background: rgba(240, 226, 191, 0.035); }
 
 .entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
 
 .entry-title {
   font-family: var(--font-fell);
-  font-size: 22px;
+  font-size: 23px;
   color: var(--ink-bright);
 }
 
@@ -25,25 +25,40 @@
 .entry-date {
   font-family: var(--font-fell);
   font-style: italic;
-  font-size: 15px;
+  font-size: 15.5px;
   color: var(--ink-dim);
   white-space: nowrap;
 }
 
 .entry-snippet {
   margin-top: 6px;
-  font-size: 15.5px;
+  font-size: 16px;
   color: var(--ink-dim);
-  line-height: 1.5;
+  line-height: 1.55;
+  max-width: 72ch;
 }
 
 .entry-people { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
 
 /* ---------- editor ---------- */
 
+.draft-notice {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 15.5px;
+  color: var(--ink-dim);
+  border: 1px solid var(--hairline);
+  border-left: 2px solid var(--gold-soft);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .editor-title {
   font-family: var(--font-fell);
-  font-size: 28px;
+  font-size: 29px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--hairline);
@@ -53,17 +68,41 @@
 
 .editor-title:focus { box-shadow: none; border-bottom-color: var(--gold-soft); }
 
-.editor-dateline { display: flex; gap: 10px; margin-bottom: 18px; }
+.editor-dateline { display: flex; gap: 10px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
 
 .date-day { width: 84px; }
 .date-month { width: 190px; }
 .date-year { width: 110px; }
 
+.date-preview {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--ink-dim);
+  padding-left: 6px;
+}
+
+.editor-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 8px;
+}
+
+.word-count {
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
 .editor-body {
   font-family: var(--font-fell);
-  font-size: 18.5px;
+  font-size: 19px;
   line-height: 1.75;
-  background: rgba(13, 10, 6, 0.55);
+  background: rgba(15, 11, 6, 0.55);
   padding: 22px 26px;
   min-height: 320px;
   overflow: hidden;
@@ -102,7 +141,7 @@
   border: none;
   color: var(--ink);
   font-family: var(--font-ui);
-  font-size: 16px;
+  font-size: 16.5px;
   font-weight: 500;
   padding: 8px 13px;
   cursor: pointer;
@@ -111,8 +150,8 @@
   gap: 10px;
 }
 
-.person-suggest button span { color: var(--ink-faint); font-style: italic; font-size: 14px; }
-.person-suggest button:hover { background: rgba(201, 162, 75, 0.08); color: var(--ink-bright); }
+.person-suggest button span { color: var(--ink-faint); font-style: italic; font-size: 14.5px; }
+.person-suggest button:hover { background: rgba(208, 168, 84, 0.08); color: var(--ink-bright); }
 
 .style-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -120,21 +159,35 @@
   font-family: var(--font-ui);
   font-variant: small-caps;
   letter-spacing: 0.07em;
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ink-dim);
   background: none;
   border: 1px solid var(--hairline);
   padding: 6px 14px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .style-pick:hover { color: var(--ink-bright); }
-.style-pick.on { color: var(--gold); border-color: var(--gold-soft); background: rgba(201, 162, 75, 0.08); }
+.style-pick.on { color: var(--gold); border-color: var(--gold-soft); background: rgba(208, 168, 84, 0.08); }
+
+.style-pick .swatch {
+  width: 13px;
+  height: 16px;
+  border: 1px solid rgba(60, 42, 20, 0.8);
+  display: inline-block;
+}
+
+.swatch-court .swatch { background: #e7d5a8; }
+.swatch-field .swatch { background: #d4bc84; }
+.swatch-seal .swatch { background: #cbb181; }
 
 .editor-foot { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
 
-.dirty-note { font-family: var(--font-fell); font-style: italic; font-size: 14.5px; color: var(--ink-faint); }
+.dirty-note { font-family: var(--font-fell); font-style: italic; font-size: 15px; color: var(--ink-faint); }
 
 @media (max-width: 700px) {
   .editor-panel { grid-template-columns: 1fr; }

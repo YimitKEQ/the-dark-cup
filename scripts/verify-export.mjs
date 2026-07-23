@@ -52,7 +52,7 @@ try {
     const orig = URL.createObjectURL.bind(URL)
     URL.createObjectURL = (blob) => { window.__capturedBlob = blob; return orig(blob) }
   })
-  const [exportBtn] = await page.$$("xpath/.//button[contains(., 'Export parchment')]")
+  const [exportBtn] = await page.$$("xpath/.//button[contains(., 'Download PNG')]")
   if (!exportBtn) throw new Error('export button not found')
   await exportBtn.click()
   await page.waitForFunction('window.__capturedBlob !== null', { timeout: 30000 })

@@ -1,10 +1,32 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '../state.jsx'
 import { TAGS, formatRealDate, timeAgo } from '../lore.js'
 import { go } from '../App.jsx'
+import { toast } from '../toast.js'
 import ConfirmButton from './ConfirmButton.jsx'
+import ParchmentModal from './ParchmentModal.jsx'
 
-function NoteComposer ({ person }) {
+function buildDossier (person) {
+  const station = [person.role, person.allegiance].filter(Boolean).join(', ')
+  const opening = [
+    `Concerning ${person.name}${station ? `, ${station}` : ''}.`,
+    person.metAt ? `First met at ${person.metAt}.` : ''
+  ].filter(Boolean).join(' ')
+  const paragraphs = person.notes.slice().reverse().map(n => {
+    const tags = n.tags.map(t => TAGS.find(x => x.key === t)?.label).filter(Boolean).join(', ')
+    const head = `${formatRealDate(n.createdAt, false)}${tags ? ` · ${tags}` : ''}`
+    return `${head}\n${n.text}`
+  })
+  return {
+    title: person.name,
+    day: null,
+    month: '',
+    year: '',
+    body: [opening, ...paragraphs].join('\n\n')
+  }
+}
+
+function NoteComposer ({ person, focusRef }) {
   const { addNote } = useData()
   const [text, setText] = useState('')
   const [tags, setTags] = useState([])
@@ -19,6 +41,7 @@ function NoteComposer ({ person }) {
       await addNote(person, { text: text.trim(), tags })
       setText('')
       setTags([])
+      toast('Recorded.')
     } finally {
       setBusy(false)
     }
@@ -27,6 +50,7 @@ function NoteComposer ({ person }) {
   return (
     <div className="composer">
       <textarea
+        ref={focusRef}
         rows={3}
         placeholder={`What is known of ${person.name}…`}
         value={text}
@@ -45,7 +69,7 @@ function NoteComposer ({ person }) {
             </button>
           ))}
         </div>
-        <button className="btn primary" disabled={!text.trim() || busy} onClick={save}>
+        <button className="btn primary" disabled={!text.trim() || busy} onClick={save} title="Ctrl+Enter">
           Record it
         </button>
       </div>
@@ -91,7 +115,7 @@ function Note ({ person, note }) {
   }
 
   return (
-    <li className="note">
+    <li className={'note' + (note.tags[0] ? ` note-${note.tags[0]}` : '')}>
       <p className="note-text">{note.text}</p>
       <div className="note-meta">
         <span className="note-tags">
@@ -143,8 +167,30 @@ export default function PersonPage ({ personId }) {
   const [tag, setTag] = useState(null)
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const composerRef = useRef(null)
 
   const person = db.people.find(p => p.id === personId)
+
+  useEffect(() => {
+    const onKey = (e) => {
+      const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)
+      if (e.key.toLowerCase() === 'n' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault()
+        composerRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const tagCounts = useMemo(() => {
+    const counts = {}
+    for (const n of person?.notes || []) {
+      for (const t of n.tags) counts[t] = (counts[t] || 0) + 1
+    }
+    return counts
+  }, [person])
 
   const notes = useMemo(() => {
     if (!person) return []
@@ -160,6 +206,7 @@ export default function PersonPage ({ personId }) {
   }
 
   const journalMentions = db.journal.filter(e => (e.personIds || []).includes(person.id))
+  const openCases = db.cases.filter(c => c.personId === person.id)
 
   return (
     <section>
@@ -176,17 +223,20 @@ export default function PersonPage ({ personId }) {
             </p>
             <div className="head-actions">
               <button className="link-btn" onClick={() => setEditing(true)}>amend</button>
+              {person.notes.length > 0 && (
+                <button className="link-btn" onClick={() => setExporting(true)}>export dossier</button>
+              )}
               <ConfirmButton
                 className="link-btn danger"
                 label="burn this page"
                 confirmLabel="burn it, truly?"
-                onConfirm={async () => { await deletePerson(person.id); go('/') }}
+                onConfirm={async () => { await deletePerson(person.id); toast('Burned.'); go('/') }}
               />
             </div>
           </header>
           )}
 
-      <NoteComposer person={person} />
+      <NoteComposer person={person} focusRef={composerRef} />
 
       <div className="toolbar slim">
         <input
@@ -202,7 +252,7 @@ export default function PersonPage ({ personId }) {
               className={`tag tag-${t.key}` + (tag === t.key ? ' on' : '')}
               onClick={() => setTag(tag === t.key ? null : t.key)}
             >
-              {t.label}
+              {t.label}{tagCounts[t.key] ? ` ${tagCounts[t.key]}` : ''}
             </button>
           ))}
         </div>
@@ -218,15 +268,40 @@ export default function PersonPage ({ personId }) {
         {notes.map(n => <Note key={n.id} person={person} note={n} />)}
       </ul>
 
-      {journalMentions.length > 0 && (
+      {(journalMentions.length > 0 || openCases.length > 0) && (
         <footer className="mentions">
-          <h2>Named in the journal</h2>
-          <ul>
-            {journalMentions.map(e => (
-              <li key={e.id}><a href={`#/journal/${e.id}`}>{e.title || 'Untitled entry'}</a></li>
-            ))}
-          </ul>
+          {openCases.length > 0 && (
+            <>
+              <h2>Cases against them</h2>
+              <ul>
+                {openCases.map(c => (
+                  <li key={c.id}>
+                    <a href={`#/cases/${c.id}`}>{c.title || 'The matter at hand'}</a>
+                    <span className={`tag static status-${c.status}`}>{c.status}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {journalMentions.length > 0 && (
+            <>
+              <h2>Named in the journal</h2>
+              <ul>
+                {journalMentions.map(e => (
+                  <li key={e.id}><a href={`#/journal/${e.id}`}>{e.title || 'Untitled entry'}</a></li>
+                ))}
+              </ul>
+            </>
+          )}
         </footer>
+      )}
+
+      {exporting && (
+        <ParchmentModal
+          doc={buildDossier(person)}
+          initialStyle="court"
+          onClose={() => setExporting(false)}
+        />
       )}
     </section>
   )

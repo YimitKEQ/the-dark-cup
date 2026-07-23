@@ -1,0 +1,156 @@
+/* ---------- case timeline ---------- */
+
+.case-timeline {
+  list-style: none;
+  margin-top: 26px;
+  position: relative;
+  padding-left: 6px;
+}
+
+.case-timeline::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--hairline-strong), var(--hairline));
+}
+
+.case-step {
+  position: relative;
+  display: flex;
+  gap: 22px;
+  padding: 16px 0 18px 0;
+}
+
+.case-node {
+  flex: 0 0 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-fell-sc);
+  font-size: 15px;
+  color: var(--gold);
+  border: 1px solid var(--hairline-strong);
+  background: var(--night);
+  position: relative;
+  z-index: 1;
+}
+
+.case-step-body { flex: 1; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; }
+.case-step:last-child .case-step-body { border-bottom: none; }
+
+.case-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.case-step-type {
+  font-family: var(--font-fell-sc);
+  font-size: 17px;
+  color: var(--ink-bright);
+  letter-spacing: 0.03em;
+}
+
+.case-step-date {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-dim);
+}
+
+.case-witnesses {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 15.5px;
+  color: var(--ink-dim);
+  margin-top: 6px;
+}
+
+.step-composer-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.step-composer-row select { flex: 0 0 auto; }
+.step-composer-row input { flex: 1; min-width: 200px; }
+.step-composer textarea { margin-bottom: 0; }
+.witness-field { max-width: 340px; }
+
+/* ---------- poison log ---------- */
+
+.poison-form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.poison-date { flex: 1.4; min-width: 170px; }
+.poison-dose { flex: 0.7; min-width: 90px; font-variant-numeric: tabular-nums; }
+.poison-unit { flex: 0.7; min-width: 90px; }
+.poison-effect { flex: 2; min-width: 200px; }
+
+.chart-wrap {
+  border: 1px solid var(--hairline);
+  background: linear-gradient(180deg, rgba(208, 168, 84, 0.03), transparent);
+  padding: 14px 16px 8px;
+  margin: 6px 0 22px;
+}
+
+.dose-chart { width: 100%; height: auto; display: block; }
+
+.chart-grid { stroke: rgba(208, 168, 84, 0.08); stroke-width: 1; }
+.chart-axis { stroke: rgba(208, 168, 84, 0.3); stroke-width: 1; }
+
+.chart-line {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-dot { fill: #1c130a; stroke: var(--gold); stroke-width: 1.6; }
+.chart-dot:hover { fill: var(--gold); }
+
+.chart-label {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  fill: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.poison-list { list-style: none; }
+
+.poison-row { padding: 15px 14px; border-bottom: 1px solid var(--hairline); }
+.poison-list .poison-row:first-child { border-top: 1px solid var(--hairline); }
+
+.poison-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.poison-row-date {
+  font-family: var(--font-fell);
+  font-size: 17.5px;
+  color: var(--ink-bright);
+}
+
+.poison-row-dose {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+
+.poison-note {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 15.5px;
+  color: var(--ink-dim);
+  margin-top: 5px;
+  white-space: pre-wrap;
+}
+
+.poison-row .note-actions { margin-left: auto; opacity: 0; transition: opacity 120ms; }
+.poison-row:hover .note-actions, .poison-row:focus-within .note-actions { opacity: 1; }

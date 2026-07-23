@@ -1,8 +1,8 @@
 # The Dark Cup
 
 A private, offline-first roleplay companion for Yiliang Peng Black-Throat, housecarl of Windhelm.
-The Ledger keeps the names, the Journal keeps his hand, and the parchment export turns any entry
-into an aged manuscript PNG fit for Discord.
+The Ledger keeps the names, the Journal keeps his hand, the Cases keep the pressure, and the
+parchment export turns any of it into an aged manuscript PNG fit for Discord.
 
 ## Run it
 
@@ -12,7 +12,8 @@ npm start
 ```
 
 Then open http://localhost:4201. That is the whole ritual: `npm start` builds the frontend and
-serves it with the data API from one process.
+serves it with the data API from one process. Other devices on the same network can use it at
+`http://<your-ip>:4201` (a firewall rule scoped to the local subnet is required on Windows).
 
 For development with hot reload: `npm run dev` (Vite on 5173, API proxied to 4201).
 
@@ -28,13 +29,34 @@ For development with hot reload: `npm run dev` (Vite on 5173, API proxied to 420
 ## Features
 
 - **The Ledger**: people, with timestamped notes tagged debt / secret / threat / favour / ally.
-  Search and tag filters on every page.
+  Search, tag filters with counts, sorting, and colored tag markers per person. Any person with
+  notes can be exported as a parchment dossier.
 - **The Journal**: long-form entries dated in Elder Scrolls months, linkable to Ledger names.
-- **Parchment export**: three page styles (Court Hand, Field Note, Black Seal), rendered at 2x
-  and downloaded as PNG. Wrap text in `[[double brackets]]` to redact it with a black bar.
-- **Search everywhere**: press `Ctrl K` (or `/`) and whisper a name, a debt, a secret.
+  The editor shows a live in-world date preview and word count, recovers unsaved drafts, and has
+  a redact-selection button.
+- **The Cases**: an escalation tracker per target. Steps (first contact, first warning, pressure
+  applied, offered a way out, they escalated, resolved) on a roman-numeraled timeline with
+  witnesses and in-world dates. Cases export to parchment.
+- **The Poison Log**: dose, effect, and note per entry, with an ink-styled chart of the dose
+  progression.
+- **Quick Notes**: press `Q` anywhere to jot something mid-session. A quick note can later be
+  sent to a person's Ledger page.
+- **Parchment export**: three page styles (Court Hand, Field Note, Black Seal), rendered at 2x.
+  Download as PNG or copy straight to the clipboard for Discord. Wrap text in
+  `[[double brackets]]` to redact it with a black bar.
+- **Search everywhere**: press `Ctrl K` (or `/`). With no query it offers quick actions and the
+  recently touched records.
 
-## Verifying the export
+## Keyboard
 
-`node scripts/verify-export.mjs <journalEntryId> <outputDir>` drives the real app in headless
-Chrome, captures all three parchment styles, produces the export PNG, and checks its dimensions.
+- `Ctrl K` or `/`: search everything
+- `Q`: jot a quick note from anywhere
+- `N`: new name (Ledger) or focus the note composer (person page)
+- `Ctrl S`: save the journal entry being written
+- `Ctrl Enter`: save a note or case step from its composer
+
+## Verifying the exports
+
+- `node scripts/verify-export.mjs <journalEntryId> <outputDir>` drives the real app in headless
+  Chrome, captures all three parchment styles, produces the export PNG, and checks its size.
+- `node scripts/verify-case-export.mjs <caseId> <outputDir>` does the same for a case file.

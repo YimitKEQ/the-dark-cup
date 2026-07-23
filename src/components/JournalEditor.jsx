@@ -1,21 +1,50 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '../state.jsx'
-import { MONTHS, DEFAULT_YEAR, STYLES } from '../lore.js'
+import { MONTHS, DEFAULT_YEAR, STYLES, formatWorldDate, countWords } from '../lore.js'
 import { go } from '../App.jsx'
+import { toast } from '../toast.js'
+
+const draftKey = (entryId) => `darkcup-draft-${entryId || 'new'}`
+
+function loadDraft (entryId) {
+  try {
+    const raw = localStorage.getItem(draftKey(entryId))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export default function JournalEditor ({ entryId }) {
   const { db, addJournal, updateJournal } = useData()
   const existing = entryId ? db.journal.find(e => e.id === entryId) : null
 
-  const [f, setF] = useState(() => existing
-    ? { title: existing.title, day: existing.day || '', month: existing.month || '', year: existing.year || DEFAULT_YEAR, body: existing.body, style: existing.style || 'court', personIds: existing.personIds || [] }
-    : { title: '', day: '', month: MONTHS[new Date().getMonth()], year: DEFAULT_YEAR, body: '', style: 'court', personIds: [] })
+  const [restored, setRestored] = useState(false)
+  const [f, setF] = useState(() => {
+    const draft = loadDraft(entryId)
+    if (draft) return draft
+    return existing
+      ? { title: existing.title, day: existing.day || '', month: existing.month || '', year: existing.year || DEFAULT_YEAR, body: existing.body, style: existing.style || 'court', personIds: existing.personIds || [] }
+      : { title: '', day: '', month: MONTHS[new Date().getMonth()], year: DEFAULT_YEAR, body: '', style: 'court', personIds: [] }
+  })
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [personQuery, setPersonQuery] = useState('')
   const bodyRef = useRef(null)
 
+  useEffect(() => {
+    if (loadDraft(entryId)) setRestored(true)
+  }, [entryId])
+
   const set = (k) => (e) => { setF(v => ({ ...v, [k]: e.target.value })); setDirty(true) }
+
+  useEffect(() => {
+    if (!dirty) return
+    const timer = setTimeout(() => {
+      try { localStorage.setItem(draftKey(entryId), JSON.stringify(f)) } catch { /* storage full */ }
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [f, dirty, entryId])
 
   useEffect(() => {
     if (!dirty) return
@@ -32,6 +61,8 @@ export default function JournalEditor ({ entryId }) {
   }, [f.body])
 
   const canSave = (f.title.trim() || f.body.trim()) && !busy
+  const words = useMemo(() => countWords(f.body), [f.body])
+  const datePreview = formatWorldDate({ day: f.day ? Number(f.day) : null, month: f.month, year: f.year })
 
   async function save () {
     if (!canSave) return
@@ -42,10 +73,36 @@ export default function JournalEditor ({ entryId }) {
         ? await updateJournal({ ...existing, ...payload })
         : await addJournal(payload)
       setDirty(false)
+      try { localStorage.removeItem(draftKey(entryId)) } catch { /* fine */ }
+      toast(existing ? 'Amended.' : 'Set down.')
       go(`/journal/${saved.id}`)
     } finally {
       setBusy(false)
     }
+  }
+
+  function discardDraft () {
+    try { localStorage.removeItem(draftKey(entryId)) } catch { /* fine */ }
+    setRestored(false)
+    setDirty(false)
+    setF(existing
+      ? { title: existing.title, day: existing.day || '', month: existing.month || '', year: existing.year || DEFAULT_YEAR, body: existing.body, style: existing.style || 'court', personIds: existing.personIds || [] }
+      : { title: '', day: '', month: MONTHS[new Date().getMonth()], year: DEFAULT_YEAR, body: '', style: 'court', personIds: [] })
+  }
+
+  function redactSelection () {
+    const el = bodyRef.current
+    if (!el) return
+    const { selectionStart: a, selectionEnd: b } = el
+    const inner = f.body.slice(a, b)
+    const next = f.body.slice(0, a) + '[[' + inner + ']]' + f.body.slice(b)
+    setF(v => ({ ...v, body: next }))
+    setDirty(true)
+    requestAnimationFrame(() => {
+      el.focus()
+      const pos = inner ? b + 4 : a + 2
+      el.setSelectionRange(inner ? a : pos, pos)
+    })
   }
 
   function onKeyDown (e) {
@@ -77,6 +134,13 @@ export default function JournalEditor ({ entryId }) {
     <section className="editor" onKeyDown={onKeyDown}>
       <a className="crumb" href={existing ? `#/journal/${existing.id}` : '#/journal'}>← {existing ? 'Back to the entry' : 'The Journal'}</a>
 
+      {restored && (
+        <div className="draft-notice">
+          Unsaved ink was recovered from last time.
+          <button className="link-btn" onClick={discardDraft}>discard it</button>
+        </div>
+      )}
+
       <input
         className="editor-title"
         placeholder="A title for this entry"
@@ -92,6 +156,14 @@ export default function JournalEditor ({ entryId }) {
           {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
         <input className="date-year" placeholder="Year" value={f.year} onChange={set('year')} />
+        {datePreview && <span className="date-preview">{datePreview}</span>}
+      </div>
+
+      <div className="editor-tools">
+        <button className="btn ghost" onClick={redactSelection} title="Wrap the selected text in [[double brackets]]">
+          Redact selection
+        </button>
+        <span className="word-count">{words === 0 ? '' : words === 1 ? '1 word set down' : `${words} words set down`}</span>
       </div>
 
       <textarea
@@ -135,10 +207,11 @@ export default function JournalEditor ({ entryId }) {
             {STYLES.map(s => (
               <button
                 key={s.key}
-                className={'style-pick' + (f.style === s.key ? ' on' : '')}
+                className={'style-pick swatch-' + s.key + (f.style === s.key ? ' on' : '')}
                 onClick={() => { setF(v => ({ ...v, style: s.key })); setDirty(true) }}
                 title={s.blurb}
               >
+                <span className="swatch" />
                 {s.name}
               </button>
             ))}
