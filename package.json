@@ -1,0 +1,30 @@
+{
+  "name": "the-dark-cup",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Private roleplay companion for Yiliang Peng Black-Throat, the Dark Cup of Windhelm",
+  "scripts": {
+    "start": "npm run build && node server/index.js",
+    "serve": "node server/index.js",
+    "dev": "concurrently -k \"node server/index.js\" \"vite\"",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.1.0",
+    "@fontsource/im-fell-english": "^5.1.0",
+    "@fontsource/im-fell-english-sc": "^5.1.0",
+    "@fontsource/medievalsharp": "^5.1.0",
+    "@fontsource/unifrakturmaguntia": "^5.1.0",
+    "express": "^4.21.2",
+    "html-to-image": "^1.11.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "puppeteer-core": "^23.11.1",
+    "vite": "^5.4.11"
+  }
+}
