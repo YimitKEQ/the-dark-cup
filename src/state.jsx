@@ -1,6 +1,45 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { api } from './api.js'
-import { isStaticHost, loadVaultConfig, saveVaultConfig, clearVaultConfig, createVaultStore, fetchVault, putVault } from './vault.js'
+import { isStaticHost, loadVaultConfig, saveVaultConfig, clearVaultConfig, createVaultStore, fetchVault, putVault, normalize } from './vault.js'
+import { makeDemoDb } from './demo.js'
+import { trackWrite } from './busy.js'
+
+// The Showcase: an in-memory book of invented records. Visitors can poke at
+// everything; none of it is written anywhere.
+function createDemoStore (doc) {
+  const uid = () => 'demo-' + Math.random().toString(36).slice(2, 10)
+  const now = () => new Date().toISOString()
+  return {
+    async data () { return doc },
+    async create (col, fields) {
+      const clean = normalize[col] ? normalize[col](fields) : fields
+      const item = { id: uid(), ...clean, createdAt: now(), updatedAt: now() }
+      doc[col].unshift(item)
+      return item
+    },
+    async update (col, id, fields) {
+      const i = doc[col].findIndex(x => x.id === id)
+      if (i === -1) throw new Error('That record is no longer in the book.')
+      const clean = normalize[col] ? normalize[col](fields) : fields
+      doc[col][i] = { ...doc[col][i], ...clean, id: doc[col][i].id, createdAt: doc[col][i].createdAt, updatedAt: now() }
+      return doc[col][i]
+    },
+    async remove (col, id) {
+      doc[col] = doc[col].filter(x => x.id !== id)
+      return { ok: true }
+    },
+    async importAll (next) {
+      for (const key of ['people', 'journal', 'cases', 'poison', 'quicknotes']) {
+        doc[key] = Array.isArray(next[key]) ? next[key] : []
+      }
+      return { ...doc }
+    }
+  }
+}
+
+function wantsShowcase () {
+  return window.location.hash.replace(/^#\/?/, '').split('/')[0] === 'showcase'
+}
 
 const DataContext = createContext(null)
 
@@ -25,8 +64,20 @@ export function DataProvider ({ children }) {
   const [error, setError] = useState(null)
   const storeRef = useRef(serverStore)
 
+  const enterDemo = useCallback(() => {
+    const doc = makeDemoDb()
+    storeRef.current = createDemoStore(doc)
+    setDb(doc)
+    setError(null)
+    setMode('demo')
+  }, [])
+
   const load = useCallback(async () => {
     setError(null)
+    if (wantsShowcase()) {
+      enterDemo()
+      return
+    }
     if (!isStaticHost()) {
       storeRef.current = serverStore
       try {
@@ -51,7 +102,7 @@ export function DataProvider ({ children }) {
       setError(e.message)
       setMode('vault-setup')
     }
-  }, [])
+  }, [enterDemo])
 
   useEffect(() => { load() }, [load])
 
@@ -64,17 +115,17 @@ export function DataProvider ({ children }) {
 
   const crud = (col) => ({
     async add (fields) {
-      const item = await storeRef.current.create(col, fields)
+      const item = await trackWrite(storeRef.current.create(col, fields))
       setDb(prev => ({ ...prev, [col]: [item, ...prev[col]] }))
       return item
     },
     async update (record) {
-      const item = await storeRef.current.update(col, record.id, record)
+      const item = await trackWrite(storeRef.current.update(col, record.id, record))
       replaceIn(col, item)
       return item
     },
     async remove (recordId) {
-      await storeRef.current.remove(col, recordId)
+      await trackWrite(storeRef.current.remove(col, recordId))
       setDb(prev => ({ ...prev, [col]: prev[col].filter(x => x.id !== recordId) }))
     }
   })
@@ -87,6 +138,14 @@ export function DataProvider ({ children }) {
 
   const actions = {
     reload: load,
+    enterDemo,
+    exitDemo () {
+      setDb(null)
+      setMode(null)
+      const h = window.location.hash
+      if (h.startsWith('#/showcase')) window.location.hash = '#/'
+      load()
+    },
     async bindVault (cfg) {
       const existing = await fetchVault(cfg)
       if (!existing) {
@@ -150,7 +209,7 @@ export function DataProvider ({ children }) {
     deleteQuick: quicknotes.remove,
 
     async importAll (doc) {
-      const next = await storeRef.current.importAll(doc)
+      const next = await trackWrite(storeRef.current.importAll(doc))
       setDb(next)
       return next
     }

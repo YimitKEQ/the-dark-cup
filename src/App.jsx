@@ -16,6 +16,21 @@ import Archive from './components/Archive.jsx'
 import VaultSetup from './components/VaultSetup.jsx'
 import SearchPalette from './components/SearchPalette.jsx'
 import Toasts from './components/Toasts.jsx'
+import HelpSheet from './components/HelpSheet.jsx'
+import SyncMark from './components/SyncMark.jsx'
+import { toast } from './toast.js'
+
+export function overlayOpen () {
+  return !!document.querySelector('.palette-backdrop, .modal-backdrop')
+}
+
+const CANDLE_LINES = [
+  'Lighting the candle…',
+  'Trimming the wick…',
+  'Unlocking the book…',
+  'Warming the wax…',
+  'Sharpening the quill…'
+]
 
 function parseHash () {
   const h = window.location.hash.replace(/^#\/?/, '')
@@ -37,6 +52,7 @@ function parseHash () {
   if (parts[0] === 'web') return { page: 'web' }
   if (parts[0] === 'chronicle') return { page: 'chronicle' }
   if (parts[0] === 'archive') return { page: 'archive' }
+  if (parts[0] === 'showcase') return { page: 'showcase' }
   return { page: 'ledger' }
 }
 
@@ -56,10 +72,12 @@ const NAV = [
 ]
 
 export default function App () {
-  const { db, error, mode, reload } = useData()
+  const { db, error, mode, reload, enterDemo, exitDemo } = useData()
   const [route, setRoute] = useState(parseHash)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [jotOpen, setJotOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [candleLine] = useState(() => CANDLE_LINES[Math.floor(Math.random() * CANDLE_LINES.length)])
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash())
@@ -67,19 +85,41 @@ export default function App () {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  useEffect(() => {
+    if (route.page === 'showcase') {
+      if (mode && mode !== 'demo') enterDemo()
+      if (mode) go('/')
+    }
+  }, [route.page, mode, enterDemo])
+
+  useEffect(() => {
+    const onRejection = (e) => {
+      const msg = e.reason?.message || 'something went wrong in the dark'
+      toast(`The quill slipped: ${msg}`)
+    }
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => window.removeEventListener('unhandledrejection', onRejection)
+  }, [])
+
   const onKeyDown = useCallback((e) => {
     const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault()
       setJotOpen(false)
+      setHelpOpen(false)
       setPaletteOpen(v => !v)
     } else if (e.key === '/' && !inField) {
       e.preventDefault()
+      setHelpOpen(false)
       setPaletteOpen(true)
     } else if (e.key.toLowerCase() === 'q' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (overlayOpen()) return
       e.preventDefault()
-      setPaletteOpen(false)
       setJotOpen(true)
+    } else if (e.key === '?' && !inField) {
+      if (overlayOpen()) return
+      e.preventDefault()
+      setHelpOpen(true)
     }
   }, [])
 
@@ -113,13 +153,19 @@ export default function App () {
     )
   }
   if (!db) {
-    return <div className="app-message"><p className="flavor">Lighting the candle…</p></div>
+    return <div className="app-message"><p className="flavor">{candleLine}</p></div>
   }
 
   const isRead = route.page === 'read'
 
   return (
-    <div className={'app' + (isRead ? ' app-reading' : '')}>
+    <div className={'app' + (isRead ? ' app-reading' : '') + (mode === 'demo' ? ' app-demo' : '')}>
+      {mode === 'demo' && (
+        <div className="demo-banner">
+          <span>A showcase copy of the book. Every record here is invented, and nothing you do is kept.</span>
+          <button className="link-btn" onClick={exitDemo}>leave the showcase</button>
+        </div>
+      )}
       <nav className="spine">
         <a className="masthead" href="#/">
           <span className="masthead-title">The Dark Cup</span>
@@ -149,6 +195,10 @@ export default function App () {
           <button className="search-hint" onClick={() => setJotOpen(true)}>
             Jot a quick note <kbd>Q</kbd>
           </button>
+          <button className="search-hint" onClick={() => setHelpOpen(true)}>
+            The shorthand <kbd>?</kbd>
+          </button>
+          <SyncMark />
         </div>
       </nav>
 
@@ -175,6 +225,7 @@ export default function App () {
         />
       )}
       {jotOpen && <QuickJot onClose={() => setJotOpen(false)} />}
+      {helpOpen && <HelpSheet onClose={() => setHelpOpen(false)} />}
       <Toasts />
     </div>
   )

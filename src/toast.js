@@ -1,8 +1,8 @@
 const listeners = new Set()
 let counter = 0
 
-export function toast (text) {
-  const item = { id: ++counter, text }
+export function toast (text, action = null) {
+  const item = { id: ++counter, text, action }
   listeners.forEach(fn => fn(item))
 }
 

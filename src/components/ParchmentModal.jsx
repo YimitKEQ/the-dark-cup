@@ -4,7 +4,7 @@ import { parchmentBlob, downloadBlob, copyBlob, canCopyImage, slugify } from '..
 import { toast } from '../toast.js'
 import ParchmentPage from './ParchmentPage.jsx'
 
-export default function ParchmentModal ({ doc, initialStyle = 'court', onClose }) {
+export default function ParchmentModal ({ doc, initialStyle = 'court', onClose, children }) {
   const [styleKey, setStyleKey] = useState(initialStyle)
   const [busy, setBusy] = useState(false)
   const captureRef = useRef(null)
@@ -60,10 +60,10 @@ export default function ParchmentModal ({ doc, initialStyle = 'court', onClose }
           </div>
         </div>
         <div className="modal-desk desk">
-          <ParchmentPage entry={doc} styleKey={styleKey} />
+          <ParchmentPage entry={doc} styleKey={styleKey}>{children}</ParchmentPage>
         </div>
         <div className="capture-stage" aria-hidden="true">
-          <ParchmentPage ref={captureRef} entry={doc} styleKey={styleKey} exporting />
+          <ParchmentPage ref={captureRef} entry={doc} styleKey={styleKey} exporting>{children}</ParchmentPage>
         </div>
       </div>
     </div>

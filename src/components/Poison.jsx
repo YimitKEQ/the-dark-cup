@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../state.jsx'
-import { formatRealDate, timeAgo } from '../lore.js'
+import { formatRealDate, formatWorldDate, todayWorldDate, timeAgo } from '../lore.js'
 import { toast } from '../toast.js'
 import ConfirmButton from './ConfirmButton.jsx'
 
@@ -55,8 +55,8 @@ function DoseChart ({ entries }) {
 }
 
 export default function Poison () {
-  const { db, addPoison, updatePoison, deletePoison } = useData()
-  const [f, setF] = useState({ dateText: '', dose: '', unit: 'drops', effect: '', note: '' })
+  const { db, addPoison, updatePoison, deletePoison, importAll } = useData()
+  const [f, setF] = useState({ dateText: formatWorldDate(todayWorldDate()), dose: '', unit: 'drops', effect: '', note: '' })
   const [editingId, setEditingId] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -82,7 +82,7 @@ export default function Poison () {
         await addPoison(payload)
         toast('Dose recorded.')
       }
-      setF({ dateText: '', dose: '', unit: f.unit, effect: '', note: '' })
+      setF({ dateText: formatWorldDate(todayWorldDate()), dose: '', unit: f.unit, effect: '', note: '' })
       setEditingId(null)
     } finally {
       setBusy(false)
@@ -117,7 +117,7 @@ export default function Poison () {
         <textarea rows={2} placeholder="A note, if the night calls for one" value={f.note} onChange={set('note')} />
         <div className="composer-foot">
           {editingId && (
-            <button className="btn ghost" onClick={() => { setEditingId(null); setF({ dateText: '', dose: '', unit: 'drops', effect: '', note: '' }) }}>
+            <button className="btn ghost" onClick={() => { setEditingId(null); setF({ dateText: formatWorldDate(todayWorldDate()), dose: '', unit: 'drops', effect: '', note: '' }) }}>
               Leave it
             </button>
           )}
@@ -144,7 +144,16 @@ export default function Poison () {
               <span className="note-time" title={formatRealDate(p.createdAt)}>{timeAgo(p.createdAt)}</span>
               <span className="note-actions">
                 <button className="link-btn" onClick={() => startEdit(p)}>amend</button>
-                <ConfirmButton className="link-btn danger" label="strike" confirmLabel="strike it?" onConfirm={() => deletePoison(p.id)} />
+                <ConfirmButton
+                  className="link-btn danger"
+                  label="strike"
+                  confirmLabel="strike it?"
+                  onConfirm={async () => {
+                    const snap = db
+                    await deletePoison(p.id)
+                    toast('Struck.', { label: 'Undo', fn: () => importAll(snap) })
+                  }}
+                />
               </span>
             </div>
             {p.effect && <p className="note-text">{p.effect}</p>}

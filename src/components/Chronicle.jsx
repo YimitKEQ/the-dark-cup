@@ -1,6 +1,32 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../state.jsx'
-import { caseStepLabel, formatWorldDate, formatRealDate, timeAgo, TAGS } from '../lore.js'
+import { caseStepLabel, formatWorldDate, formatRealDate, timeAgo, TAGS, countWords } from '../lore.js'
+
+function Reckoning ({ db }) {
+  const stats = useMemo(() => {
+    const notes = db.people.flatMap(p => p.notes)
+    return [
+      { n: db.people.length, label: 'names held' },
+      { n: notes.filter(x => x.tags.includes('secret')).length, label: 'secrets kept' },
+      { n: notes.filter(x => x.tags.includes('debt')).length, label: 'debts recorded' },
+      { n: db.cases.filter(c => c.status === 'open').length, label: 'matters open' },
+      { n: db.journal.reduce((sum, e) => sum + countWords(e.body), 0), label: 'words set down' },
+      { n: db.poison.length, label: 'doses given' }
+    ]
+  }, [db])
+
+  if (stats.every(s => s.n === 0)) return null
+  return (
+    <div className="reckoning">
+      {stats.map(s => (
+        <div key={s.label} className="reck-item">
+          <span className="reck-n">{s.n.toLocaleString('en-GB')}</span>
+          <span className="reck-label">{s.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 const KINDS = [
   { key: 'note', label: 'Ledger notes', glyph: '✒' },
@@ -84,6 +110,8 @@ export default function Chronicle () {
         <h1>The Chronicle</h1>
         <p className="page-sub">Everything set down, in the order it was set down. The whole night&apos;s work, one river.</p>
       </header>
+
+      <Reckoning db={db} />
 
       <div className="toolbar">
         <div className="tag-row">

@@ -8,7 +8,7 @@ import ParchmentPage from './ParchmentPage.jsx'
 import ConfirmButton from './ConfirmButton.jsx'
 
 export default function ReadView ({ entryId }) {
-  const { db, updateJournal, deleteJournal } = useData()
+  const { db, updateJournal, deleteJournal, importAll } = useData()
   const [busy, setBusy] = useState(false)
   const captureRef = useRef(null)
 
@@ -71,7 +71,12 @@ export default function ReadView ({ entryId }) {
             className="btn ghost danger"
             label="Burn it"
             confirmLabel="Burn it, truly?"
-            onConfirm={async () => { await deleteJournal(entry.id); toast('Burned.'); go('/journal') }}
+            onConfirm={async () => {
+              const snap = db
+              await deleteJournal(entry.id)
+              toast('Burned.', { label: 'Undo', fn: () => importAll(snap) })
+              go('/journal')
+            }}
           />
         </div>
       </div>

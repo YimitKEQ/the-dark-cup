@@ -99,7 +99,7 @@ const uid = () => (crypto.randomUUID
 
 // The server assigns ids and timestamps to nested records; in vault mode the
 // client must do the same so both books stay the same shape.
-const normalize = {
+export const normalize = {
   people (item) {
     return {
       ...item,
@@ -127,18 +127,31 @@ function heal (doc) {
 
 export function createVaultStore (cfg) {
   let chain = Promise.resolve()
+  // The last known state of the file, so the usual save is one request
+  // instead of two. A 409 (someone else wrote meanwhile) drops the cache,
+  // refetches, and reapplies the change.
+  let cache = null
 
   function mutate (message, fn) {
     const run = async () => {
       for (let attempt = 0; attempt < 2; attempt++) {
-        const cur = await fetchVault(cfg)
-        const doc = heal(cur ? cur.doc : EMPTY())
+        let doc, sha
+        if (attempt === 0 && cache) {
+          doc = structuredClone(cache.doc)
+          sha = cache.sha
+        } else {
+          const cur = await fetchVault(cfg)
+          doc = heal(cur ? cur.doc : EMPTY())
+          sha = cur ? cur.sha : null
+        }
         const result = fn(doc)
         doc.updatedAt = now()
         try {
-          await putVault(cfg, doc, cur ? cur.sha : null, message)
+          const newSha = await putVault(cfg, doc, sha, message)
+          cache = { doc: structuredClone(doc), sha: newSha }
           return result
         } catch (err) {
+          cache = null
           if (err.status !== 409 || attempt === 1) throw err
         }
       }
@@ -153,10 +166,13 @@ export function createVaultStore (cfg) {
       const cur = await fetchVault(cfg)
       if (!cur) {
         const doc = { ...EMPTY(), updatedAt: now() }
-        await putVault(cfg, doc, null, 'begin the book')
+        const sha = await putVault(cfg, doc, null, 'begin the book')
+        cache = { doc: structuredClone(doc), sha }
         return doc
       }
-      return heal(cur.doc)
+      const doc = heal(cur.doc)
+      cache = { doc: structuredClone(doc), sha: cur.sha }
+      return doc
     },
 
     create (col, fields) {

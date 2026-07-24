@@ -80,6 +80,52 @@
   margin-top: 14px;
 }
 
+.web-legend-inline {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-faint);
+  margin-right: auto;
+}
+
+.web-ink { width: 100%; height: auto; display: block; }
+
+/* ---------- the reckoning ---------- */
+
+.reckoning {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  margin-bottom: 22px;
+}
+
+.reck-item {
+  background: var(--night);
+  padding: 14px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.reck-n {
+  font-family: var(--font-fell);
+  font-size: 26px;
+  color: var(--ink-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.reck-label {
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
 /* ---------- ties on the person page ---------- */
 
 .ties-block { margin-top: 18px; }

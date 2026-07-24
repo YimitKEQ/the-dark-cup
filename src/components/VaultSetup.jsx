@@ -86,6 +86,11 @@ export default function VaultSetup () {
         opened as they stand. Every change becomes a sealed commit, so the vault remembers every
         version of the book there has ever been.
       </p>
+
+      <p className="detail vault-note">
+        Only looking? <a href="#/showcase">Wander the showcase</a>: a fully written copy of the
+        book, invented from the first page to the last.
+      </p>
     </section>
   )
 }

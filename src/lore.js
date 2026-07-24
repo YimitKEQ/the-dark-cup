@@ -80,6 +80,13 @@ function ordinal (n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
+// Today's real date by the Tamrielic reckoning: months map one to one,
+// Morning Star for January through Evening Star for December.
+export function todayWorldDate () {
+  const d = new Date()
+  return { day: d.getDate(), month: MONTHS[d.getMonth()], year: DEFAULT_YEAR }
+}
+
 export function formatWorldDate (entry) {
   const parts = []
   if (entry.day) parts.push(ordinal(entry.day) + ' of')

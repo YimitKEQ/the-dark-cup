@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '../state.jsx'
-import { MONTHS, DEFAULT_YEAR, STYLES, formatWorldDate, countWords } from '../lore.js'
+import { MONTHS, DEFAULT_YEAR, STYLES, formatWorldDate, todayWorldDate, countWords } from '../lore.js'
 import { go } from '../App.jsx'
 import { toast } from '../toast.js'
 
@@ -23,9 +23,11 @@ export default function JournalEditor ({ entryId }) {
   const [f, setF] = useState(() => {
     const draft = loadDraft(entryId)
     if (draft) return draft
-    return existing
-      ? { title: existing.title, day: existing.day || '', month: existing.month || '', year: existing.year || DEFAULT_YEAR, body: existing.body, style: existing.style || 'court', personIds: existing.personIds || [] }
-      : { title: '', day: '', month: MONTHS[new Date().getMonth()], year: DEFAULT_YEAR, body: '', style: 'court', personIds: [] }
+    if (existing) {
+      return { title: existing.title, day: existing.day || '', month: existing.month || '', year: existing.year || DEFAULT_YEAR, body: existing.body, style: existing.style || 'court', personIds: existing.personIds || [] }
+    }
+    const today = todayWorldDate()
+    return { title: '', day: today.day, month: today.month, year: today.year, body: '', style: 'court', personIds: [] }
   })
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -85,9 +87,10 @@ export default function JournalEditor ({ entryId }) {
     try { localStorage.removeItem(draftKey(entryId)) } catch { /* fine */ }
     setRestored(false)
     setDirty(false)
+    const today = todayWorldDate()
     setF(existing
       ? { title: existing.title, day: existing.day || '', month: existing.month || '', year: existing.year || DEFAULT_YEAR, body: existing.body, style: existing.style || 'court', personIds: existing.personIds || [] }
-      : { title: '', day: '', month: MONTHS[new Date().getMonth()], year: DEFAULT_YEAR, body: '', style: 'court', personIds: [] })
+      : { title: '', day: today.day, month: today.month, year: today.year, body: '', style: 'court', personIds: [] })
   }
 
   function redactSelection () {

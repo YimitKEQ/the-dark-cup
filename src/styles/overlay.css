@@ -157,7 +157,26 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   padding: 9px 22px;
   animation: toast-in 180ms ease-out;
+  pointer-events: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
 }
+
+.toast-action {
+  background: none;
+  border: none;
+  font-family: var(--font-ui);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--gold);
+  cursor: pointer;
+  padding: 0;
+}
+
+.toast-action:hover { color: var(--ink-bright); }
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px); }
@@ -167,3 +186,54 @@
 @media (prefers-reduced-motion: reduce) {
   .toast { animation: none; }
 }
+
+/* ---------- help sheet ---------- */
+
+.help-sheet { padding-bottom: 14px; }
+
+.help-list { padding: 8px 20px 14px; }
+
+.help-row {
+  display: flex;
+  gap: 18px;
+  align-items: baseline;
+  padding: 5px 0;
+}
+
+.help-row dt { flex: 0 0 130px; text-align: right; }
+.help-row dd { color: var(--ink); font-size: 16px; }
+
+/* ---------- demo banner ---------- */
+
+.demo-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 9px 18px;
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 15px;
+  color: #c8a253;
+  background: linear-gradient(180deg, rgba(208, 168, 84, 0.12), rgba(208, 168, 84, 0.05));
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.app-demo { grid-template-rows: auto 1fr; }
+.app-demo .spine { height: auto; min-height: calc(100vh - 42px); }
+
+/* ---------- sync mark ---------- */
+
+.sync-mark {
+  font-family: var(--font-fell);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+  text-align: center;
+  padding-top: 2px;
+  transition: color 200ms;
+}
+
+.sync-mark.writing { color: var(--gold); }

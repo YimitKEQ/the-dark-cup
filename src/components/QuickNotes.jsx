@@ -44,7 +44,7 @@ function SendToLedger ({ quick, onDone }) {
 }
 
 export default function QuickNotes () {
-  const { db, addQuick, deleteQuick } = useData()
+  const { db, addQuick, deleteQuick, importAll } = useData()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [sendingId, setSendingId] = useState(null)
@@ -97,7 +97,16 @@ export default function QuickNotes () {
                 <button className="link-btn" onClick={() => setSendingId(sendingId === q.id ? null : q.id)}>
                   to the ledger
                 </button>
-                <ConfirmButton className="link-btn danger" label="strike" confirmLabel="strike it?" onConfirm={() => deleteQuick(q.id)} />
+                <ConfirmButton
+                  className="link-btn danger"
+                  label="strike"
+                  confirmLabel="strike it?"
+                  onConfirm={async () => {
+                    const snap = db
+                    await deleteQuick(q.id)
+                    toast('Struck.', { label: 'Undo', fn: () => importAll(snap) })
+                  }}
+                />
               </span>
             </div>
             {sendingId === q.id && <SendToLedger quick={q} onDone={() => setSendingId(null)} />}

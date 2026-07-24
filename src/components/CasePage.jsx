@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useData } from '../state.jsx'
 import { CASE_STEPS, CASE_STATUS, caseStepLabel, roman, formatRealDate, timeAgo } from '../lore.js'
 import { go } from '../App.jsx'
@@ -6,9 +6,21 @@ import { toast } from '../toast.js'
 import ConfirmButton from './ConfirmButton.jsx'
 import ParchmentModal from './ParchmentModal.jsx'
 
+// Suggest the natural next rung of the ladder based on the last step taken.
+function nextStepType (theCase) {
+  const last = theCase.steps[theCase.steps.length - 1]
+  if (!last) return 'contact'
+  const order = ['contact', 'warning', 'pressure', 'mercy', 'escalation', 'resolution']
+  const i = order.indexOf(last.type)
+  if (i === -1 || i === order.length - 1) return last.type === 'resolution' ? 'other' : 'contact'
+  return order[i + 1]
+}
+
 function StepComposer ({ theCase }) {
   const { updateCase } = useData()
-  const [type, setType] = useState('contact')
+  const [type, setType] = useState(() => nextStepType(theCase))
+  const stepCount = theCase.steps.length
+  useEffect(() => { setType(nextStepType(theCase)) }, [stepCount]) // eslint-disable-line react-hooks/exhaustive-deps
   const [text, setText] = useState('')
   const [witnesses, setWitnesses] = useState('')
   const [worldDate, setWorldDate] = useState('')
@@ -71,7 +83,7 @@ function buildParchmentDoc (theCase, person) {
 }
 
 export default function CasePage ({ caseId }) {
-  const { db, updateCase, deleteCase } = useData()
+  const { db, updateCase, deleteCase, importAll } = useData()
   const [exporting, setExporting] = useState(false)
 
   const theCase = db.cases.find(c => c.id === caseId)
@@ -82,7 +94,9 @@ export default function CasePage ({ caseId }) {
   const person = db.people.find(p => p.id === theCase.personId)
 
   async function removeStep (stepId) {
+    const snap = db
     await updateCase({ ...theCase, steps: theCase.steps.filter(s => s.id !== stepId) })
+    toast('Struck.', { label: 'Undo', fn: () => importAll(snap) })
   }
 
   return (
@@ -113,7 +127,12 @@ export default function CasePage ({ caseId }) {
             className="link-btn danger"
             label="burn the file"
             confirmLabel="burn it, truly?"
-            onConfirm={async () => { await deleteCase(theCase.id); toast('Burned.'); go('/cases') }}
+            onConfirm={async () => {
+              const snap = db
+              await deleteCase(theCase.id)
+              toast('Burned.', { label: 'Undo', fn: () => importAll(snap) })
+              go('/cases')
+            }}
           />
         </div>
       </header>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '../state.jsx'
 import { TAGS, TIE_KINDS, tieLabel, formatRealDate, timeAgo } from '../lore.js'
-import { go } from '../App.jsx'
+import { go, overlayOpen } from '../App.jsx'
 import { toast } from '../toast.js'
 import ConfirmButton from './ConfirmButton.jsx'
 import ParchmentModal from './ParchmentModal.jsx'
@@ -153,7 +153,7 @@ function NoteComposer ({ person, focusRef }) {
 }
 
 function Note ({ person, note }) {
-  const { updateNote, deleteNote } = useData()
+  const { db, updateNote, deleteNote, importAll } = useData()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(note.text)
   const [draftTags, setDraftTags] = useState(note.tags)
@@ -204,7 +204,16 @@ function Note ({ person, note }) {
         </span>
         <span className="note-actions">
           <button className="link-btn" onClick={() => setEditing(true)}>amend</button>
-          <ConfirmButton className="link-btn danger" label="strike" confirmLabel="strike it?" onConfirm={() => deleteNote(person, note.id)} />
+          <ConfirmButton
+            className="link-btn danger"
+            label="strike"
+            confirmLabel="strike it?"
+            onConfirm={async () => {
+              const snap = db
+              await deleteNote(person, note.id)
+              toast('Struck.', { label: 'Undo', fn: () => importAll(snap) })
+            }}
+          />
         </span>
       </div>
     </li>
@@ -238,7 +247,7 @@ function HeaderEditor ({ person, onDone }) {
 }
 
 export default function PersonPage ({ personId }) {
-  const { db, deletePerson } = useData()
+  const { db, deletePerson, importAll } = useData()
   const [tag, setTag] = useState(null)
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState(false)
@@ -250,7 +259,7 @@ export default function PersonPage ({ personId }) {
   useEffect(() => {
     const onKey = (e) => {
       const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)
-      if (e.key.toLowerCase() === 'n' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key.toLowerCase() === 'n' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey && !overlayOpen()) {
         e.preventDefault()
         composerRef.current?.focus()
       }
@@ -305,7 +314,12 @@ export default function PersonPage ({ personId }) {
                 className="link-btn danger"
                 label="burn this page"
                 confirmLabel="burn it, truly?"
-                onConfirm={async () => { await deletePerson(person.id); toast('Burned.'); go('/') }}
+                onConfirm={async () => {
+                  const snap = db
+                  await deletePerson(person.id)
+                  toast('Burned.', { label: 'Undo', fn: () => importAll(snap) })
+                  go('/')
+                }}
               />
             </div>
           </header>

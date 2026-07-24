@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../state.jsx'
 import { TAGS, timeAgo, snippet } from '../lore.js'
-import { go } from '../App.jsx'
+import { go, overlayOpen } from '../App.jsx'
 import { toast } from '../toast.js'
 
 function NewPersonForm ({ onDone }) {
@@ -72,7 +72,7 @@ export default function Ledger () {
   useEffect(() => {
     const onKey = (e) => {
       const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)
-      if (e.key.toLowerCase() === 'n' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key.toLowerCase() === 'n' && !inField && !e.ctrlKey && !e.metaKey && !e.altKey && !overlayOpen()) {
         e.preventDefault()
         setAdding(true)
       }

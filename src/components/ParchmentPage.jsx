@@ -111,7 +111,7 @@ function Body ({ text, dropcap }) {
   )
 }
 
-const ParchmentPage = forwardRef(function ParchmentPage ({ entry, styleKey = 'court', exporting = false }, ref) {
+const ParchmentPage = forwardRef(function ParchmentPage ({ entry, styleKey = 'court', exporting = false, children }, ref) {
   const worldDate = formatWorldDate(entry)
   return (
     <div ref={ref} className={`pp pp-${styleKey}` + (exporting ? ' exporting' : '')}>
@@ -148,7 +148,7 @@ const ParchmentPage = forwardRef(function ParchmentPage ({ entry, styleKey = 'co
           <div className="pp-rule" />
         </header>
 
-        <Body text={entry.body} dropcap={styleKey !== 'field'} />
+        {children || <Body text={entry.body} dropcap={styleKey !== 'field'} />}
 
         <footer className="pp-foot">
           <div className="pp-rule" />
