@@ -55,6 +55,15 @@ as a detached process (Start-Process), surviving session end.
 
 ## Hard-won gotchas
 
+- 2026-07-24: Lodie misbound the vault to the PUBLIC code repo (the-dark-cup) and test
+  records landed in its history (junk only; erased by force push). The app now fails closed:
+  assertPrivateVault() checks repository visibility at bind time AND at vault load. Never
+  remove that guard. He still needs to rebind his devices to darkcup-vault; his token must
+  have access to that repo specifically.
+- Showcase mode (#/showcase) is an in-memory demo book (src/demo.js) usable by strangers on
+  the public site; it must never write anywhere. Undo everywhere works by full-book snapshot
+  plus importAll restore.
+
 - html-to-image does NOT render `::first-letter` or most pseudo-elements. The drop cap is a
   real `<span class="pp-initial">`. Do not convert it back to CSS.
 - Headless Chrome cancels the save step of blob downloads; verify scripts intercept
