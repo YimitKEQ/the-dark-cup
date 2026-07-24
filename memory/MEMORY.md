@@ -5,18 +5,37 @@ One-user roleplay companion for Lodie's Skyrim RP character, Yiliang Peng Black-
 
 ## State (2026-07-24)
 
-All seven planned features shipped and verified: Ledger, Journal, parchment export, Cases,
-Poison Log, Quick Notes, Archive (JSON export/import), plus global Ctrl+K search with quick
-actions and recents, Q quick-jot overlay, toasts, and a readability pass (18px base, brighter
-ink palette).
+Everything shipped and verified: Ledger (with ties), Journal, parchment export, Cases, Poison
+Log, Quick Notes, The Web (relationship graph), The Chronicle (unified timeline), Archive,
+global Ctrl+K search, Q quick-jot, toasts, PWA manifest.
 
-Lodie is actively using it, including from a second desktop over LAN
-(http://192.168.178.194:4201, firewall rule "The Dark Cup (local web app)" scoped to
-LocalSubnet on all profiles because his home Wi-Fi is categorized Public). His real entries
-live in data/darkcup.json: never wipe that file. Test data must be seeded via API and deleted
-by tracked id afterward (see the seed2.py pattern in the session scratchpad).
+Deployed. Code repo: https://github.com/YimitKEQ/the-dark-cup (public: free-plan Pages
+requires it). Live app: https://yimitkeq.github.io/the-dark-cup/ via
+.github/workflows/deploy.yml on push to main. Data repo: YimitKEQ/darkcup-vault (private),
+holding darkcup.json; the Pages app binds to it with a fine-grained PAT (Contents R/W, that
+repo only) stored in each browser's localStorage. Verified end to end with puppeteer against
+the live site: bind, create person, write note, commits appear in the vault. Vault was reset
+to an empty book afterward; Lodie still needs to make his own PAT and bind his devices, then
+export from local and import into the vault app if he wants to migrate.
+
+Lodie is actively using LOCAL mode (http://192.168.178.194:4201 on LAN, firewall rule
+"The Dark Cup (local web app)" scoped to LocalSubnet). His real entries live in
+data/darkcup.json: never wipe that file. Test data must be seeded via API and deleted by
+tracked id afterward (seed2.py pattern in the session scratchpad). The local server now runs
+as a detached process (Start-Process), surviving session end.
 
 ## Architecture decisions
+
+- Dual store: src/state.jsx picks 'server' (Express, local) or 'vault' (GitHub Contents API)
+  at runtime via isStaticHost() (hostname ends in github.io). Both expose the same five-method
+  store (data/create/update/remove/importAll). Vault mutations are serialized on a promise
+  chain, sha-guarded, and retry once on 409; client assigns ids/timestamps exactly like the
+  server (normalize map in src/vault.js). Research note (2026-07): free Node hosts with
+  persistent disks are effectively gone (Fly free tier dead, Railway needs a card, Render free
+  loses disk), which is why GitHub-as-database won.
+- The Web is a dependency-free Fruchterman-Reingold layout (src/components/Web.jsx). The
+  naive k^2/d^2 variant collapses small graphs into a clump; the standard k^2/d with ideal
+  distance sqrt(area/n)*0.7 settles correctly.
 
 - React 18 + Vite frontend, Express backend, all data in `data/darkcup.json`.
   JSON file over SQLite on purpose: single user, trivial backup/restore, no native deps.
