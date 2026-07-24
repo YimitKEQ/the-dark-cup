@@ -63,6 +63,26 @@ async function ghError (res, fallback) {
   return err
 }
 
+export async function fetchRepoMeta (cfg) {
+  const res = await fetch(`${API}/repos/${cfg.owner}/${cfg.repo}`, { headers: headers(cfg) })
+  if (!res.ok) {
+    throw await ghError(res,
+      'The vault could not be found, or the key cannot see it. Check the repository name and the token’s access.')
+  }
+  return res.json()
+}
+
+// Fail closed: the book never goes into a repository the whole world can read.
+export async function assertPrivateVault (cfg) {
+  const meta = await fetchRepoMeta(cfg)
+  if (!meta.private) {
+    throw new Error(
+      `${cfg.owner}/${cfg.repo} is a PUBLIC repository; anyone could read the book. ` +
+      'Bind the vault to a private repository such as darkcup-vault.')
+  }
+  return meta
+}
+
 export async function fetchVault (cfg) {
   const res = await fetch(fileUrl(cfg), { headers: headers(cfg) })
   if (res.status === 404) return null
@@ -163,6 +183,7 @@ export function createVaultStore (cfg) {
 
   return {
     async data () {
+      await assertPrivateVault(cfg)
       const cur = await fetchVault(cfg)
       if (!cur) {
         const doc = { ...EMPTY(), updatedAt: now() }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { api } from './api.js'
-import { isStaticHost, loadVaultConfig, saveVaultConfig, clearVaultConfig, createVaultStore, fetchVault, putVault, normalize } from './vault.js'
+import { isStaticHost, loadVaultConfig, saveVaultConfig, clearVaultConfig, createVaultStore, fetchVault, putVault, normalize, assertPrivateVault } from './vault.js'
 import { makeDemoDb } from './demo.js'
 import { trackWrite } from './busy.js'
 
@@ -147,6 +147,7 @@ export function DataProvider ({ children }) {
       load()
     },
     async bindVault (cfg) {
+      await assertPrivateVault(cfg)
       const existing = await fetchVault(cfg)
       if (!existing) {
         await putVault(cfg, {
