@@ -5,3 +5,7 @@ data/
 .env.*
 *.log
 settings.local.json
+
+# Generated PDF page previews
+.preview/
+.yorvath-tmp.html
