@@ -1,15 +1,22 @@
-// Rasterizes every page of the generated PDF to PNG so the layout can be inspected visually.
-// Usage: node preview-pdf.mjs
+// Rasterizes every page of a generated PDF to PNG so the layout can be inspected visually.
+// Usage: node preview-pdf.mjs [file.pdf]
+//   defaults to Yorvath-Palefang-Application.pdf; images land in .preview/<name>/
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import puppeteer from 'puppeteer-core';
 
 const ROOT = 'D:/TheDarkCUp';
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const PDF = join(ROOT, 'Yorvath-Palefang-Application.pdf');
-const OUTDIR = join(ROOT, '.preview');
+const TARGET = process.argv[2] || 'Yorvath-Palefang-Application.pdf';
+const PDF = join(ROOT, TARGET);
+const OUTDIR = join(ROOT, '.preview', basename(TARGET, '.pdf'));
 const TMP = join(ROOT, '.preview-tmp.html');
 const SCALE = 1.35;
+
+if (!existsSync(PDF)) {
+  console.error(`No such PDF: ${PDF}`);
+  process.exit(1);
+}
 
 if (existsSync(OUTDIR)) rmSync(OUTDIR, { recursive: true, force: true });
 mkdirSync(OUTDIR, { recursive: true });
